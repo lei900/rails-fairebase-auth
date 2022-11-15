@@ -31,3 +31,9 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+
+# Ignore mac files
+.DS_Store
+
+# Ingore environmental variables
+.env
