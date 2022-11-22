@@ -1,8 +1,8 @@
 Rails.application.routes.draw do
   namespace :api, format: "json" do
     namespace :v1 do
-      get "/users/new", to: "users#create"
-      patch "/users/update", to: "users#update"
+      get "/users/create", to: "users#create"
+      resources :posts, only: %i[index create update delete]
     end
   end
 end
