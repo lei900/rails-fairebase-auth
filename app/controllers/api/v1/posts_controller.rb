@@ -21,15 +21,16 @@ class Api::V1::PostsController < ApplicationController
   end
 
   def update
-    if @post.update(post)
+    if @post.update(post_params)
       render json: @post
     else
-      render_400(nil, article.errors.full_messages)
+      render_400(nil, @post.errors.full_messages)
     end
   end
 
   def destroy
     current_user.posts.find_by(params[:id]).destroy!
+    render json: { message: "Post deleted successfully" }, status: :ok
   end
 
   private
