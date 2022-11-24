@@ -1,48 +1,44 @@
-class Api::V1::PostsController < ActionController::API
-  include FirebaseAuthCheck
-
-  before_action :set_auth, only: %i[create update delete]
+class Api::V1::PostsController < ApplicationController
+  skip_before_action :authenticate_token, only: %i[index show]
+  before_action :set_post, only: %i[show update destroy]
 
   def index
     posts = Post.all
-    render json: { data: posts }
+    render json: posts
+  end
+
+  def show
+    render json: @post
   end
 
   def create
-    if @auth[:error]
-      render json: @auth, status: :unauthorized
-      return
-    end
-
-    uid = @auth[:data]["user_id"]
-    user = User.find_by(uid: uid)
-    unless user
-      render json: { message: "User does not exit! " }, status: :bad_request
-      return
-    end
-
-    post_params[:user] = user
-    post = user.posts.new(post_params)
+    post = current_user.posts.new(post_params)
     if post.save
-      render json: { data: { post: post, uid: user.uid } }
+      render json: post
     else
-      render json: post.errors.messages, status: :unprocessable_entity
+      render_400(nil, article.errors.full_messages)
     end
   end
 
   def update
+    if @post.update(post)
+      render json: @post
+    else
+      render_400(nil, article.errors.full_messages)
+    end
   end
 
-  def delete
+  def destroy
+    current_user.posts.find_by(params[:id]).destroy!
   end
 
   private
 
-  def set_auth
-    @auth = authenticate_firebase_id_token
+  def set_post
+    @post = Post.find(params[:id])
   end
 
   def post_params
-    params.fetch(:post, {}).permit(:title, :body)
+    params.require(:post).permit(:title, :body)
   end
 end
