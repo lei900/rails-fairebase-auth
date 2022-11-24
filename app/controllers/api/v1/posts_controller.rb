@@ -1,6 +1,6 @@
 class Api::V1::PostsController < ApplicationController
   skip_before_action :authenticate_token, only: %i[index show]
-  before_action :set_post, only: %i[show update destroy]
+  before_action :set_post, only: %i[update destroy]
 
   def index
     posts = Post.all
@@ -8,7 +8,8 @@ class Api::V1::PostsController < ApplicationController
   end
 
   def show
-    render json: @post
+    post = Post.find(params[:id])
+    render json: post
   end
 
   def create
@@ -16,7 +17,7 @@ class Api::V1::PostsController < ApplicationController
     if post.save
       render json: post
     else
-      render_400(nil, article.errors.full_messages)
+      render_400(nil, post.errors.full_messages)
     end
   end
 
@@ -29,14 +30,14 @@ class Api::V1::PostsController < ApplicationController
   end
 
   def destroy
-    current_user.posts.find_by(params[:id]).destroy!
+    @post.destroy!
     render json: { message: "Post deleted successfully" }, status: :ok
   end
 
   private
 
   def set_post
-    @post = Post.find(params[:id])
+    @post = current_user.posts.find(params[:id])
   end
 
   def post_params
