@@ -3,16 +3,16 @@ class ApplicationController < ActionController::API
   include Api::ExceptionHandler
   include ActionController::HttpAuthentication::Token::ControllerMethods
 
-  private
+  before_action :authenticate_token
 
-  def authenticate
+  def authenticate_token
     authenticate_with_http_token do |token, _options|
       result = verify_id_token(token)
 
-      if uid = result[:uid]
-        @_current_user ||= User.find_or_create_by!(uid: uid)
-      else
+      if result[:errors]
         render_400(nil, result[:errors])
+      else
+        @_current_user = User.find_or_create_by!(uid: result[:uid])
       end
     end
   end
