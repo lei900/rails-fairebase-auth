@@ -26,10 +26,10 @@ module FirebaseAuth
   #   1. Decode the token without verification in order to grab the header;
   #   2. Get the public key using the key ID from the header;
   #   3. Verify the token with the public key;
-  #   4. Raise error if there is any;
-  #   5. When all verifications are successful, return the paylaod(user data);
+  #   4. If all verifications are successful, return the paylaod.user_id;
+  #   5. Otherwise, return errors if there is any;
   #
-  # Payload returned:
+  # Payload =>
   # {
   #   "name": "<username>",
   #   "picture": "<user_profile_picture>",
@@ -54,23 +54,21 @@ module FirebaseAuth
   #     "sign_in_provider": "google.com"
   #   }
   # }
-  def get_verified_data(id_token)
+
+  def verify_id_token(id_token)
     payload, header = decode_unverified(id_token)
     public_key = get_public_key(header)
 
-    error = verify_token(id_token, public_key)
-    raise error unless error.nil?
+    errors = verify(id_token, public_key)
 
-    return payload
+    if errors.empty?
+      return { uid: payload.user_id }
+    else
+      return { errors: errors }
+    end
   end
 
   private
-
-  # Returns:
-  #   decoded data of ID token, as [{payload hash},{headers hash}]
-  def decode_token(token:, key:, verify:, options:)
-    JWT.decode(token, key, verify, options)
-  end
 
   # No verification is done here. The `verify`` arg is set to `false`.
   # This is to extract the key ID from the header in order to
@@ -84,6 +82,16 @@ module FirebaseAuth
         algorithm: ALGORITHM,
       },
     )
+  end
+
+  # Returns:
+  #    Array: decoded data of ID token =>
+  #     [
+  #      {"data"=>"data"}, # payload
+  #      {"typ"=>"JWT", "alg"=>"alg", "kid"=>"kid"} # header
+  #     ]
+  def decode_token(token:, key:, verify:, options:)
+    JWT.decode(token, key, verify, options)
   end
 
   # Use the kid - Key ID in headers to get the corrosponding public key
@@ -130,8 +138,9 @@ module FirebaseAuth
 
   # Verify the signature and data for the provided JWT token.
   # Return error messages if something wrong with the token.
-  def verify_token(token, key)
-    # Verify the signature and data, excluding subject and algorithm
+  def verify(token, key)
+    errors = []
+
     begin
       decoded_token =
         decode_token(
@@ -141,26 +150,32 @@ module FirebaseAuth
           options: decode_options,
         )
     rescue JWT::ExpiredSignature
-      return(
-        "Firebase ID token has expired. Get a fresh token from your app and try again."
-      )
+      errors << "Firebase ID token has expired. Get a fresh token from your app and try again."
     rescue JWT::InvalidIatError
-      return "Invalid ID token. 'Issued-at time' (iat) must be in the past."
+      errors << "Invalid ID token. 'Issued-at time' (iat) must be in the past."
     rescue JWT::InvalidIssuerError
-      return(
-        "Invalid ID token. 'Issuer' (iss) Must be 'https://securetoken.google.com/<firebase_project_id>'."
-      )
+      errors << "Invalid ID token. 'Issuer' (iss) Must be 'https://securetoken.google.com/<firebase_project_id>'."
     rescue JWT::InvalidAudError
-      return(
-        "Invalid ID token. 'Audience' (aud) must be your Firebase project ID."
-      )
+      errors << "Invalid ID token. 'Audience' (aud) must be your Firebase project ID."
     rescue JWT::VerificationError => e
-      return "Firebase ID token has invalid signature. #{e.message}"
+      errors << "Firebase ID token has invalid signature. #{e.message}"
+    rescue JWT::DecodeError => e
+      errors << "Invalid ID token. #{e.message}"
     end
 
-    # If the above verifications are successful,
-    # finally, verify subject ("sub") and algorithm ("alg")
-    verify_sub_and_alg(decoded_token)
+    # verify subject ("sub") and algorithm ("alg")
+    sub = decoded_token[0]["sub"]
+    alg = decoded_token[1]["alg"]
+
+    unless sub.is_a?(String) && !sub.empty?
+      errors << "Invalid ID token. 'Subject' (sub) must be a non-empty string."
+    end
+
+    unless alg == ALGORITHM
+      errors << "Invalid ID token. 'alg' must be '#{ALGORITHM}', but got #{alg}."
+    end
+
+    return errors
   end
 
   def decode_options
@@ -172,20 +187,5 @@ module FirebaseAuth
       verify_iss: true,
       verify_aud: true,
     }
-  end
-
-  def verify_sub_and_alg(decoded_token)
-    sub = decoded_token[0]["sub"]
-    alg = decoded_token[1]["alg"]
-
-    unless sub.is_a?(String) && !sub.empty?
-      return "Invalid ID token. 'Subject' (sub) must be a non-empty string."
-    end
-
-    unless alg == ALGORITHM
-      return "Invalid ID token. 'alg' must be '#{ALGORITHM}', but got #{alg}."
-    end
-
-    return nil
   end
 end
