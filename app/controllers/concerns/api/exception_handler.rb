@@ -1,6 +1,5 @@
 module Api::ExceptionHandler
   extend ActiveSupport::Concern
-  include FirebaseAuth
 
   included do
     rescue_from StandardError, with: :render_500
