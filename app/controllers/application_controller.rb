@@ -3,12 +3,10 @@ class ApplicationController < ActionController::API
   include Api::ExceptionHandler
   include ActionController::HttpAuthentication::Token::ControllerMethods
 
-  before_action :authenticate
-
   private
 
   def authenticate
-    authenticate_or_request_with_http_token do |token, _options| # _options varaible is not used
+    authenticate_with_http_token do |token, _options|
       result = verify_id_token(token)
 
       if uid = result[:uid]
