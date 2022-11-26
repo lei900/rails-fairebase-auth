@@ -23,6 +23,3 @@ test:
 production:
   <<: *default
   database: rails_firebase_auth_production
-  username: postgres
-  password: <%= ENV['DATABASE_PASSWORD'] %>
-  url: <%= ENV['DATABASE_URL'] %>
