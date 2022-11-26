@@ -41,6 +41,7 @@ class Api::V1::PostsController < ApplicationController
   end
 
   def post_params
+    debugger
     params
       .require(:post)
       .permit(:title, :body)
