@@ -1,24 +1,8 @@
 # README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+This is a simple CRUD app built with 
+Rails 7 API + Next.js + TypeScript + Firebase Authentication v9
 
-Things you may want to cover:
+See [Next.js Part Code](https://github.com/lei900/next-firebase-auth)
 
-* Ruby version
-
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+See Demo [next-firebase-auth-sample-app](https://next-firebase-auth-sample-seven.vercel.app/)
